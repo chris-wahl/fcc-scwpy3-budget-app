@@ -1,6 +1,14 @@
+from typing import List, TypedDict
+
+Ledger = TypedDict('Ledger', {
+    'amount': float,
+    'description': str
+})
+
+
 class Category:
     category: str
-    ledger: list
+    ledger: List[Ledger]
 
     def __init__(self, category: str):
         self.category = category.title()
@@ -48,5 +56,37 @@ class Category:
 
         return s
 
-def create_spend_chart(categories):
-    pass
+
+def create_spend_chart(categories: List[Category]):
+    spend_per_category = [
+        (abs(sum(
+            [entry['amount'] for entry in category.ledger
+             if entry['amount'] < 0], 0
+        )), category.category) for category in categories
+    ]
+
+    total_spend = sum([e[0] for e in spend_per_category])
+    # Reprocess spend_per_category into % of total
+    spend_per_category = [(e[0] / total_spend * 100, e[1]) for e in spend_per_category]
+
+    s = 'Percentage spent by category'
+    for i in range(100, -1, -10):
+        line = f'\n{i:>3}| '
+        for amount, name in spend_per_category:
+            if amount >= i:
+                line += 'o  '
+            else:
+                line += ' ' * 3
+        s += line
+
+    # Set the lower `-------` bar
+    s += '\n' + (' ' * 4) + '-' * (3 * len(categories) + 1)
+    # Add in the category names
+    max_name = max(len(e[1]) for e in spend_per_category)
+    for i in range(max_name):
+        line = '\n' + ' ' * 5
+        for _, name in spend_per_category:
+            line += (name[i:i + 1] or ' ') + '  '
+        s += line
+
+    return s
